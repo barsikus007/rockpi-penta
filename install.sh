@@ -1,16 +1,17 @@
 #!/bin/bash
-AUTHOR='Akgnah <setq@radxa.com>'
-VERSION='0.10'
+AUTHOR='barsikus007 <barsikus07@gmail.com>'
+VERSION='0.11'
 PI_MODEL=`tr -d '\0' < /proc/device-tree/model`
-PI_DEB="https://s3.setq.io/rockpi/deb/rockpi-penta-${VERSION}.deb"
+PI_DEB="https://github.com/barsikus007/rockpi-penta/releases/download/${VERSION}/rockpi-penta-${VERSION}.deb"
 LIBMRAA="https://s3.setq.io/rockpi/deb/libmraa-1.6.deb"
 SSD1306="https://s3.setq.io/rockpi/pypi/Adafruit_SSD1306-v1.6.2.zip"
+OVERLAY="https://raw.githubusercontent.com/barsikus007/rockpi-penta/master/rockpi-penta.dts"
 DISTRO=`cat /etc/os-release | grep VERSION_CODENAME | sed -e 's/VERSION_CODENAME\=//g'`
 
 confirm() {
   printf "%s [Y/n] " "$1"
   read resp < /dev/tty
-  if [ "$resp" == "Y" ] || [ "$resp" == "y" ] || [ "$resp" == "yes" ]; then
+  if [ "$resp" == "" ] || [ "$resp" == "Y" ] || [ "$resp" == "y" ] || [ "$resp" == "yes" ]; then
     return 0
   fi
   if [ "$2" == "abort" ]; then
@@ -23,7 +24,7 @@ confirm() {
 add_repo() {
   if [ "$DISTRO" == "focal" ]; then
     add-apt-repository ppa:mraa/mraa -y
-  else
+  elif [ "$DISTRO" == "bullseye" ]; then
     echo "deb https://apt.radxa.com/$DISTRO-stable/ $DISTRO main" | tee /etc/apt/sources.list.d/apt-radxa-com.list
     wget -qO - apt.radxa.com/$DISTRO-stable/public.key | apt-key add -
     apt-get update
@@ -57,6 +58,19 @@ apt_check() {
     apt-get install --no-install-recommends $need_packages -y
   fi
 }
+mraa_build() {
+  # TODO check if mraa exist in system
+  if [ "$DISTRO" == "jammy" ] || [ "$DISTRO" == "bullseye" ]; then
+    apt-get install --no-install-recommends swig cmake build-essential -y
+    git clone -b master https://github.com/radxa/mraa.git && cd mraa
+    sed -i 's/"Build swig node modules." ON/"Build swig node modules." OFF/' CMakeLists.txt
+    sed -i 's/"Force tests to run with python3" OFF/"Force tests to run with python3" ON/' CMakeLists.txt
+    sed -i 's/^const/extern const/' include/version.h
+    mkdir build && cd build
+    cmake .. && make && make install && ldconfig
+    mraa-gpio version
+  fi
+}
 
 deb_install() {
   TEMP_DEB="$(mktemp)"
@@ -75,7 +89,7 @@ deb_install() {
 dtb_enable() {
   fname='rockpi-penta'
   mkdir -p /boot/overlay-user
-  curl -sL https://s3.setq.io/rockpi/dtb/rockpi-penta.dtbo -o /boot/overlay-user/${fname}.dtbo
+  curl -sL "$OVERLAY" -o /boot/overlay-user/${fname}.dtbo
 
   ENV='/boot/armbianEnv.txt'
   [ -f /boot/dietpiEnv.txt ] && ENV='/boot/dietpiEnv.txt'
@@ -90,7 +104,6 @@ dtb_enable() {
   else
     sed -i -e "\$auser_overlays=${fname}" "$ENV"
   fi
-  sed -i "s/i2c_bus=7/i2c_bus=3/" /usr/bin/rockpi-penta/oled.py
 }
 
 pip_install() {
@@ -109,6 +122,7 @@ main() {
     apt_check
     pip_install
     deb_install
+    mraa_build
     dtb_enable
   else
     echo 'nothing'

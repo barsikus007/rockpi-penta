@@ -1,0 +1,36 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+	compatible = "rockchip,rk3568";
+
+	fragment@0 {
+		target = <&pwm8>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pwm8m0_pins>;
+		};
+	};
+
+	fragment@1 {
+		target = <&pwm15>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&pwm15m0_pins>;
+		};
+	};
+
+	fragment@2 {
+		target = <&i2c3>;
+
+		__overlay__ {
+			status = "okay";
+			pinctrl-names = "default";
+			pinctrl-0 = <&i2c3m0_xfer>;
+		};
+	};
+};

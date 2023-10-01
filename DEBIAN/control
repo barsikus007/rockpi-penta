@@ -1,9 +1,9 @@
 Package: rockpi-penta
-Version: 0.10
+Version: 0.11
 Architecture: all
-Maintainer: Radxa <dev@radxa.com>
+Maintainer: barsikus007 <barsikus07@gmail.com>
 Depends: python3
 Section: utils
 Priority: optional
-Homepage: https://github.com/akgnah/rockpi-penta
+Homepage: https://github.com/barsikus007/rockpi-penta
 Description: Rockpi Penta Hat

@@ -89,6 +89,18 @@ def get_info(s):
     return check_output(cmds[s])
 
 """
+    Call the Linux shell for this user to get board model.
+"""
+def get_model() -> str:
+    return check_output(r"tr -d '\0' < /proc/device-tree/model")
+
+"""
+    Check if device model is rock3.
+"""
+def is_rock3() -> bool:
+    return "ROCK3" in get_model()
+
+"""
     Read the Configuration file and build a dictionary of
     the values specified in it, providing defaults if a
     configuration file does not exist or has missing
@@ -134,7 +146,7 @@ def read_conf():
     except Exception as config_exception:
         print ("Config error:", repr(config_exception))
         # fan
-        conf['fan']['lv0'] = 35
+        conf['fan']['lv0'] = 30
         conf['fan']['lv1'] = 40
         conf['fan']['lv2'] = 45
         conf['fan']['lv3'] = 50

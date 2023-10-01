@@ -31,7 +31,7 @@ font = {
 }
 
 def disp_init():
-    disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=7)
+    disp = Adafruit_SSD1306.SSD1306_128_32(rst=None, i2c_bus=3 if misc.is_rock3() else 7)
     [getattr(disp, x)() for x in ('begin', 'clear', 'display')]
     return disp
 

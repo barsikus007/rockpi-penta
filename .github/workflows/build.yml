@@ -1,0 +1,32 @@
+name: Build and release package
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Build Package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          path: "REPO"
+
+      - name: Copy script files around to stop .github from being added to the package then build the package
+        id: debian-package
+        run: |
+          DPKG_PATH="rockpi-penta-${{ github.ref_name }}"
+          mkdir "$DPKG_PATH"
+          cp -Rf REPO/etc REPO/lib REPO/usr REPO/DEBIAN "$DPKG_PATH"
+          dpkg-deb --build "$DPKG_PATH"
+          echo "DPKG_NAME=${DPKG_PATH}.deb" >> $GITHUB_OUTPUT
+
+      - name: Release the Package
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.debian-package.outputs.DPKG_NAME }}
