@@ -27,6 +27,7 @@ font = {
     '10': ImageFont.truetype('fonts/DejaVuSansMono-Bold.ttf', 10),
     '11': ImageFont.truetype('fonts/DejaVuSansMono-Bold.ttf', 11),
     '12': ImageFont.truetype('fonts/DejaVuSansMono-Bold.ttf', 12),
+    '13': ImageFont.truetype('fonts/DejaVuSansMono-Bold.ttf', 12),
     '14': ImageFont.truetype('fonts/DejaVuSansMono-Bold.ttf', 14),
 }
 
@@ -78,7 +79,7 @@ def disp_show():
 
 def welcome():
     with display_lock:
-        draw.text((0, 0), 'ROCKPi PENTA HAT', font=font['14'], fill=255)
+        draw.text((0, 0), 'ROCKPi PENTA HAT', font=font['13'], fill=255)
         draw.text((32, 16), 'Loading...', font=font['12'], fill=255)
         disp_show()
     misc.get_disk_io_rates()

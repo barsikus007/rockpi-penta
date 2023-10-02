@@ -4,8 +4,9 @@ VERSION='0.11'
 PI_MODEL=`tr -d '\0' < /proc/device-tree/model`
 PI_DEB="https://github.com/barsikus007/rockpi-penta/releases/download/${VERSION}/rockpi-penta-${VERSION}.deb"
 LIBMRAA="https://s3.setq.io/rockpi/deb/libmraa-1.6.deb"
+MRAASRC="https://github.com/radxa-pkg/mraa"
 SSD1306="https://s3.setq.io/rockpi/pypi/Adafruit_SSD1306-v1.6.2.zip"
-OVERLAY="https://raw.githubusercontent.com/barsikus007/rockpi-penta/master/rockpi-penta.dts"
+OVERLAY="https://raw.githubusercontent.com/barsikus007/rockpi-penta/master/rockpi-penta-3a.dts"
 DISTRO=`cat /etc/os-release | grep VERSION_CODENAME | sed -e 's/VERSION_CODENAME\=//g'`
 
 confirm() {
@@ -59,10 +60,14 @@ apt_check() {
   fi
 }
 mraa_build() {
-  # TODO check if mraa exist in system
+  if command -v mraa-gpio &> /dev/null; then
+    echo -e "\nmraa is already installed\n"
+    return
+  fi
   if [ "$DISTRO" == "jammy" ] || [ "$DISTRO" == "bullseye" ]; then
+    echo -e "\nBuilding mraa...\n"
     apt-get install --no-install-recommends swig cmake build-essential -y
-    git clone -b master https://github.com/radxa/mraa.git && cd mraa
+    git clone -b master "$MRAASRC.git" && cd mraa
     sed -i 's/"Build swig node modules." ON/"Build swig node modules." OFF/' CMakeLists.txt
     sed -i 's/"Force tests to run with python3" OFF/"Force tests to run with python3" ON/' CMakeLists.txt
     sed -i 's/^const/extern const/' include/version.h
@@ -87,22 +92,30 @@ deb_install() {
 }
 
 dtb_enable() {
-  fname='rockpi-penta'
-  mkdir -p /boot/overlay-user
-  curl -sL "$OVERLAY" -o /boot/overlay-user/${fname}.dtbo
-
-  ENV='/boot/armbianEnv.txt'
-  [ -f /boot/dietpiEnv.txt ] && ENV='/boot/dietpiEnv.txt'
-
-  if grep -q '^user_overlays=' "$ENV"; then
-    line=$(grep '^user_overlays=' "$ENV" | cut -d'=' -f2)
-    if grep -qE "(^|[[:space:]])${fname}([[:space:]]|$)" <<< $line; then
-      echo "Overlay ${fname} was already added to /boot/armbianEnv.txt, skip"
-    else
-      sed -i -e "/^user_overlays=/ s/$/ ${fname}/" "$ENV"
-    fi
+  if [[ "$PI_MODEL" =~ "ROCK3" ]]; then
+    TEMP_DIR="$(mktemp -d)"
+    TEMP_DTS=$TEMP_DIR/rockpi-penta-3a.dts
+    curl -sL "$OVERLAY" -o "$TEMP_DTS"
+    armbian-add-overlay "$TEMP_DTS"
+    rm -rf "$TEMP_DIR"
   else
-    sed -i -e "\$auser_overlays=${fname}" "$ENV"
+    fname='rockpi-penta'
+    mkdir -p /boot/overlay-user
+    curl -sL https://cos.setq.io/rockpi/dtb/rockpi-penta.dtbo -o /boot/overlay-user/${fname}.dtbo
+  
+    ENV='/boot/armbianEnv.txt'
+    [ -f /boot/dietpiEnv.txt ] && ENV='/boot/dietpiEnv.txt'
+  
+    if grep -q '^user_overlays=' "$ENV"; then
+      line=$(grep '^user_overlays=' "$ENV" | cut -d'=' -f2)
+      if grep -qE "(^|[[:space:]])${fname}([[:space:]]|$)" <<< $line; then
+        echo "Overlay ${fname} was already added to /boot/armbianEnv.txt, skip"
+      else
+        sed -i -e "/^user_overlays=/ s/$/ ${fname}/" "$ENV"
+      fi
+    else
+      sed -i -e "\$auser_overlays=${fname}" "$ENV"
+    fi
   fi
 }
 
