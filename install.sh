@@ -1,6 +1,6 @@
 #!/bin/bash
 AUTHOR='barsikus007 <barsikus07@gmail.com>'
-VERSION='0.11'
+VERSION='0.12'
 PI_MODEL=`tr -d '\0' < /proc/device-tree/model`
 PI_DEB="https://github.com/barsikus007/rockpi-penta/releases/download/${VERSION}/rockpi-penta-${VERSION}.deb"
 LIBMRAA="https://s3.setq.io/rockpi/deb/libmraa-1.6.deb"
