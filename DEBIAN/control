@@ -2,7 +2,7 @@ Package: rockpi-penta
 Version: 0.11
 Architecture: all
 Maintainer: barsikus007 <barsikus07@gmail.com>
-Depends: python3
+Depends: python3 (>= 3.10)
 Section: utils
 Priority: optional
 Homepage: https://github.com/barsikus007/rockpi-penta
