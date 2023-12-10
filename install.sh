@@ -4,7 +4,8 @@ VERSION='0.12'
 PI_MODEL=`tr -d '\0' < /proc/device-tree/model`
 PI_DEB="https://github.com/barsikus007/rockpi-penta/releases/download/${VERSION}/rockpi-penta-${VERSION}.deb"
 LIBMRAA="https://s3.setq.io/rockpi/deb/libmraa-1.6.deb"
-MRAASRC="https://github.com/radxa-pkg/mraa"
+MRAASRC="https://github.com/eclipse/mraa"
+# MRAASRC="https://github.com/radxa/mraa"
 SSD1306="https://s3.setq.io/rockpi/pypi/Adafruit_SSD1306-v1.6.2.zip"
 OVERLAY="https://raw.githubusercontent.com/barsikus007/rockpi-penta/master/rockpi-penta-3a.dts"
 DISTRO=`cat /etc/os-release | grep VERSION_CODENAME | sed -e 's/VERSION_CODENAME\=//g'`
@@ -66,14 +67,18 @@ mraa_build() {
   fi
   if [ "$DISTRO" == "jammy" ] || [ "$DISTRO" == "bullseye" ]; then
     echo -e "\nBuilding mraa...\n"
+    pushd ~
     apt-get install --no-install-recommends swig cmake build-essential -y
     git clone -b master "$MRAASRC.git" && cd mraa
-    sed -i 's/"Build swig node modules." ON/"Build swig node modules." OFF/' CMakeLists.txt
+    # fixed in 2.2.0
+    # sed -i 's/"Build swig node modules." ON/"Build swig node modules." OFF/' CMakeLists.txt
     sed -i 's/"Force tests to run with python3" OFF/"Force tests to run with python3" ON/' CMakeLists.txt
-    sed -i 's/^const/extern const/' include/version.h
-    mkdir build && cd build
+    # fixed in 2.2.0
+    # sed -i 's/^const/extern const/' include/version.h
+    mkdir -p build && cd build
     cmake .. && make && make install && ldconfig
     mraa-gpio version
+    popd
   fi
 }
 

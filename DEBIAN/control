@@ -1,5 +1,5 @@
 Package: rockpi-penta
-Version: 0.11
+Version: 0.12
 Architecture: all
 Maintainer: barsikus007 <barsikus07@gmail.com>
 Depends: python3 (>= 3.10)
