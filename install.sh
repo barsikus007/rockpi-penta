@@ -1,12 +1,10 @@
 #!/bin/bash
 AUTHOR='barsikus007 <barsikus07@gmail.com>'
-VERSION='0.12'
+VERSION='0.12.11'
 PI_MODEL=`tr -d '\0' < /proc/device-tree/model`
 PI_DEB="https://github.com/barsikus007/rockpi-penta/releases/download/${VERSION}/rockpi-penta-${VERSION}.deb"
-LIBMRAA="https://s3.setq.io/rockpi/deb/libmraa-1.6.deb"
-MRAASRC="https://github.com/eclipse/mraa"
-# MRAASRC="https://github.com/radxa/mraa"
-SSD1306="https://s3.setq.io/rockpi/pypi/Adafruit_SSD1306-v1.6.2.zip"
+MRAASRC="https://github.com/radxa-pkg/mraa"
+SSD1306="https://cos.setq.io/rockpi/pypi/Adafruit_SSD1306-v1.6.2.zip"
 OVERLAY="https://raw.githubusercontent.com/barsikus007/rockpi-penta/master/rockpi-penta-3a.dts"
 DISTRO=`cat /etc/os-release | grep VERSION_CODENAME | sed -e 's/VERSION_CODENAME\=//g'`
 
@@ -24,12 +22,18 @@ confirm() {
 }
 
 add_repo() {
-  if [ "$DISTRO" == "focal" ]; then
-    add-apt-repository ppa:mraa/mraa -y
-  elif [ "$DISTRO" == "bullseye" ]; then
-    echo "deb https://apt.radxa.com/$DISTRO-stable/ $DISTRO main" | tee /etc/apt/sources.list.d/apt-radxa-com.list
-    wget -qO - apt.radxa.com/$DISTRO-stable/public.key | apt-key add -
-    apt-get update
+  if [ ! -f /etc/apt/sources.list.d/radxa.list ]; then
+    temp=$(mktemp)
+    curl -L --output "$temp" "https://github.com/radxa-pkg/radxa-archive-keyring/releases/latest/download/radxa-archive-keyring_$(curl -L https://github.com/radxa-pkg/radxa-archive-keyring/releases/latest/download/VERSION)_all.deb"
+    sudo dpkg -i "$temp"
+    rm -f "$temp"
+    source /etc/os-release
+    sudo tee /etc/apt/sources.list.d/radxa.list <<< "deb [signed-by=/usr/share/keyrings/radxa-archive-keyring.gpg] https://radxa-repo.github.io/$VERSION_CODENAME/ $VERSION_CODENAME main"
+    sudo apt update
+  fi
+  # for libpython3.9 for mraa
+  if [ ! -f /etc/apt/sources.list.d/deadsnakes-ubuntu-ppa-"$DISTRO".list ]; then
+    sudo add-apt-repository ppa:deadsnakes/ppa -y
   fi
 }
 
@@ -39,7 +43,7 @@ apt_check() {
 
   if [ "$DISTRO" == "bullseye" ]; then
     packages="$packages libc6 libjson-c5 libjson-c-dev libgtest-dev libgcc-s1 libstdc++6"
-  elif [ "$DISTRO" == "focal" ]; then
+  elif [ "$DISTRO" == "focal" ] || [ "$DISTRO" == "jammy" ]; then
     packages="$packages mraa-tools python3-mraa"
   else
     packages="$packages libmraa"
@@ -60,6 +64,7 @@ apt_check() {
     apt-get install --no-install-recommends $need_packages -y
   fi
 }
+
 mraa_build() {
   if command -v mraa-gpio &> /dev/null; then
     echo -e "\nmraa is already installed\n"
@@ -70,11 +75,7 @@ mraa_build() {
     pushd ~
     apt-get install --no-install-recommends swig cmake build-essential -y
     git clone -b master "$MRAASRC.git" && cd mraa
-    # fixed in 2.2.0
-    # sed -i 's/"Build swig node modules." ON/"Build swig node modules." OFF/' CMakeLists.txt
     sed -i 's/"Force tests to run with python3" OFF/"Force tests to run with python3" ON/' CMakeLists.txt
-    # fixed in 2.2.0
-    # sed -i 's/^const/extern const/' include/version.h
     mkdir -p build && cd build
     cmake .. && make && make install && ldconfig
     mraa-gpio version
@@ -87,13 +88,6 @@ deb_install() {
   curl -sL "$PI_DEB" -o "$TEMP_DEB"
   dpkg -i "$TEMP_DEB"
   rm -f "$TEMP_DEB"
-
-  if [ "$DISTRO" == "bullseye" ]; then
-    MRAA_DEB="$(mktemp)"
-    curl -sL "$LIBMRAA" -o "$MRAA_DEB"
-    dpkg -i "$MRAA_DEB"
-    rm -f "$MRAA_DEB"
-  fi
 }
 
 dtb_enable() {

@@ -15,12 +15,27 @@ Fan PWN frequency is 25KHz, according to Noctua fan white paper
 import time
 import mraa  # pylint: disable=import-error
 import misc
+import syslog
 
-fan_pin = 13
 
-pin13 = mraa.Pwm(fan_pin)
-pin13.period_us(40)
-pin13.enable(True)
+class MockPwm:
+    pin = 13
+
+    @classmethod
+    def pi(cls):
+        try:
+            pwm = mraa.Pwm(cls.pin)
+            pwm.period_us(40)
+            pwm.enable(True)
+        except Exception:
+            pwm = cls()
+        return pwm
+
+    def __init__(self):
+        syslog.syslog('PWM is not available. Use on/off to control the fan.')
+
+    def write(self, dc):
+        misc.set_mode(self.pin, (not bool(dc)))
 
 
 def read_cpu_temp():
@@ -73,3 +88,6 @@ def running():
     while True:
         change_dc(get_dc())
         time.sleep(0.1)
+
+
+pin13 = MockPwm.pi()
